@@ -34,12 +34,13 @@ public class MainScreen {
     private static final List<String> hasinterfaces = new ArrayList<>();
 
     private static final List<String> has_parameter = new ArrayList<>();
+    private static final Commands command = new Commands();  //获取commond
 
     public static void screen(String[] args) throws Exception {
         Logo.PrintLogo();//打印logo
         System.out.println(
                 "============================================================================================");
-        Commands command = new Commands();  //获取commond
+
         JCommander jc = JCommander.newBuilder().addObject(command).build();
         jc.parse(args);
         if (command.help) {
@@ -85,18 +86,22 @@ public class MainScreen {
 
                     if (command.isdedug) {
                         System.out.println("继承结果收集完毕,满足条件的类为：");
-                        for (int i = 0; i < supers.size(); i++) {
-                            int ii = i + 1;
-                            System.out.println("     " + ii + "." + supers.get(i));
+                        int i = 0;
+                        if (!supers.isEmpty()) {
+                            for (String s : supers) {
+                                int ii = i + 1;
+                                System.out.println("     " + ii + "." + s);
+                            }
+                        } else {
+                            System.out.println("supers is empty.");
                         }
+
                     }
                 }
 
                 if (command.method != null) {
                     String returnparameter = "";
                     String parameter = "";
-                    String method = "";
-                    boolean sta_tic = command.isstatic;
                     if (command.paramter != null) {
                         parameter = command.paramter.replace(".", "/").replace("|", "$");
                     }
@@ -104,8 +109,7 @@ public class MainScreen {
                     if (command.returnparamter != null) {
                         returnparameter = command.returnparamter.replace(".", "/").replace("|", "$");
                     }
-                    method = command.method;
-                    has_parameter_returns(method, parameter, returnparameter, sta_tic);
+                    has_parameter_returns(command.method, parameter, returnparameter, command.isstatic);
                     List<String> has_parlist = new ArrayList<>();
                     for (String s : has_parameter) {
                         String[] ress = s.split("#   ");
@@ -114,11 +118,16 @@ public class MainScreen {
                     returnresults(has_parlist);
                     if (command.isdedug) {
                         System.out.println("方法实现结果收集完毕,满足条件的类为：");
-                        int i = 0;
-                        for (String s : resultclass) {
-                            int ii = i + 1;
-                            System.out.println("     " + ii + "." + s);
+                        if (!has_parlist.isEmpty()) {
+                            int i = 0;
+                            for (String s : resultclass) {
+                                int ii = i + 1;
+                                System.out.println("     " + ii + "." + s);
+                            }
+                        } else {
+                            System.out.println("has_parlist is empty.");
                         }
+
                     }
 
                 } else {
@@ -275,14 +284,21 @@ public class MainScreen {
         }
 
         //name
-        if (Objects.equals(resultlist.get(0), "方法名模糊")) {
+        if (resultlist.get(0).equals("方法名模糊")) {
             List<String> list = new ArrayList<>();
             HashSet<String> hashSet = new HashSet<>();
+//            HashMap<String,List<String>> hashMapSet = new HashMap<>();
             for (Map.Entry<MethodReference.Handle, MethodReference> handle : methodMapdubbo.entrySet()) {
-                if (handle.getValue().getName().contains(methodname)) {
-                    list.add(handle.getKey().getClassReference().getName() + "$" + handle.getValue().getName() + " " +
+                String handlename = handle.getValue().getName();
+                String keyname = handle.getKey().getClassReference().getName();
+                if (command.isdedug) {
+                    System.out.println(keyname + ":" + handlename);
+                }
+                if (handlename.contains(methodname)) {
+                    list.add(keyname + "$" + handle.getValue().getName() +
+                            " " +
                             "param:" + handle.getValue().getParamer() + " returnparam:" + handle.getValue().getReturnpar());
-                    hashSet.add(handle.getKey().getClassReference().getName());
+                    hashSet.add(keyname);
                 }
             }
             nameresult = getresult(hashSet, list);
@@ -420,10 +436,14 @@ public class MainScreen {
     }
 
     public static HashMap<String, List<String>> getresult(HashSet<String> hashSet, List<String> list) {
+        //hashSet里面是获取的所有jar包里的类名，list是符合方法名规则的类$方法名
         HashMap<String, List<String>> returnresult = new HashMap<>();
         for (String s : hashSet) {
             List<String> list1 = getlist(s, list);
             returnresult.put(s, list1);
+            if (command.isdedug) {
+                System.out.println(returnresult);
+            }
         }
         return returnresult;
     }
